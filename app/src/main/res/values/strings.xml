@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">DeviceUserManagement</string>
+    <string name="action_settings">Settings</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="first_fragment_label">First Fragment</string>
+    <string name="second_fragment_label">Second Fragment</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+
+    <string name="hello_first_fragment">Hello first fragment</string>
+    <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
+    <string name="read_portal_file">Read Portal file</string>
+    <string name="read_device_file">Read Device File</string>
+    <string name="permission_rationale_title">Required Permission!</string>
+    <string name="permission_rationale_message">This permissions required to perform basic read adn write operation of the file!</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">Ok</string>
+    <string name="action_sync">Sync Portal</string>
+</resources>
