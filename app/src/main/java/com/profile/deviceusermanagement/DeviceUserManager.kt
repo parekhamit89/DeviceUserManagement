@@ -3,13 +3,20 @@ package com.profile.deviceusermanagement
 import android.content.Context
 import android.os.Build
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import java.io.*
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
+import kotlin.collections.ArrayList
 
 
 class DeviceUserManager(val contex: Context, val listener: UpdateListener) {
@@ -19,13 +26,27 @@ class DeviceUserManager(val contex: Context, val listener: UpdateListener) {
     private lateinit var portalUserList: ArrayList<UserData>
     private lateinit var updatedUserList: ArrayList<UserData>
     private var currentDeviceId = 0
-    fun readPortalUser() {
-        portalUserList = readFile("PortalUserList.txt")
+    suspend fun readPortalUser(): ArrayList<UserData> {
+        val readJob = CoroutineScope(Dispatchers.IO).async {
+            readFile("PortalUserList.txt")
+        }
+        portalUserList = readJob.await()
+
+        return portalUserList
     }
 
     fun readDeviceUser() {
-        deviceUserList = readFile("DeviceUserList.txt")
-        this.listener.deviceUserUpdate(deviceUserList)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val users = async { readFile("DeviceUserList.txt") }
+
+            deviceUserList = users.await()
+            listener.deviceUserUpdate(deviceUserList)
+            Log.e(TAG, "readDeviceUser: ${deviceUserList.size}", )
+        }
+
+//        deviceUserList = readFile("DeviceUserList.txt")
+
     }
 
     /**
@@ -45,7 +66,7 @@ class DeviceUserManager(val contex: Context, val listener: UpdateListener) {
                 if (currentDeviceId == 0) {
                     currentDeviceId = rowData?.get(1)?.toInt() ?: 0
                 }
-                Log.e(TAG, "UseArray: " + rowData)
+//                Log.e(TAG, "UseArray: " + rowData)
 
                 var userData: UserData = UserData(rowData!![0], rowData[1].toInt(), rowData[2])
                 if (currentDeviceId != 0 && userData.devieId == currentDeviceId) {
@@ -88,7 +109,7 @@ class DeviceUserManager(val contex: Context, val listener: UpdateListener) {
                     var trained = 0x00
                     var binary = hexToBinary(deviceUser.userStatus)
                     var value = binary?.get(1)?.digitToInt()
-                    if (value==1) {
+                    if (value == 1) {
                         trained = 0x01
                     }
 
@@ -107,18 +128,25 @@ class DeviceUserManager(val contex: Context, val listener: UpdateListener) {
 
         } else {
             // directory creation is not successful
-            Toast.makeText(
-                contex,
-                "Directory does not exist. Please allow all the permission!",
-                Toast.LENGTH_SHORT
-            ).show()
+            Handler(Looper.getMainLooper()).post(){
+                Toast.makeText(
+                    contex,
+                    "Directory does not exist. Please allow all the permission!",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
         }
     }
 
 
-    fun updateUsers() {
-        readPortalUser()
+    suspend fun updateUsers() {
+        var jobPortalUser = CoroutineScope(Dispatchers.IO).launch {
+            readPortalUser()
+        }
+        jobPortalUser.join()
         updatedUserList = arrayListOf()
+
         for (deviceUser in deviceUserList) {
             var fetchedData = portalUserList.singleOrNull { it.userId == deviceUser.userId }
             if (fetchedData != null) {
@@ -135,8 +163,13 @@ class DeviceUserManager(val contex: Context, val listener: UpdateListener) {
                 updatedUserList.add(portalUser)
             }
         }
-        writeModifiedFile()
+       
+        val job = CoroutineScope(Dispatchers.IO).launch {
+            writeModifiedFile()
+        }
+        job.join()
         listener.deviceUserUpdate(updatedUserList)
+        Log.e(TAG, "updateUsers: ${updatedUserList.size}", )
 
     }
 }

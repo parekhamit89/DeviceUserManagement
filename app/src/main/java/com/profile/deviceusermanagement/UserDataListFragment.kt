@@ -1,13 +1,16 @@
 package com.profile.deviceusermanagement
 
 import android.os.Bundle
+import android.util.Log
 import android.view.*
 import androidx.fragment.app.Fragment
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.profile.deviceusermanagement.databinding.FragmentFirstBinding
+import kotlinx.coroutines.launch
 
 /**
  * A simple [Fragment] subclass as the default destination in the navigation.
@@ -16,7 +19,8 @@ class UserDataListFragment : Fragment(), UpdateListener {
     private lateinit var deviceUserManager: DeviceUserManager
     private var _binding: FragmentFirstBinding? = null
     private lateinit var deviceUserList: ArrayList<UserData>
-private lateinit var  adapater: UserRecyclerAdapter
+    private lateinit var adapater: UserRecyclerAdapter
+
     // This property is only valid between onCreateView and
     // onDestroyView.
     private val binding get() = _binding!!
@@ -42,6 +46,7 @@ private lateinit var  adapater: UserRecyclerAdapter
         (activity as? AppCompatActivity)?.supportActionBar?.show()
         adapater = UserRecyclerAdapter()
         deviceUserManager = activity?.let { DeviceUserManager(it.baseContext, this) }!!
+
         deviceUserManager.readDeviceUser();
 
         return binding.root
@@ -59,7 +64,9 @@ private lateinit var  adapater: UserRecyclerAdapter
         return when (item.itemId) {
             R.id.action_sync -> {
 //                deviceUserManager.writeModifiedFile()
-                deviceUserManager.updateUsers()
+//                TODO:startLoader()
+                lifecycleScope.launch { deviceUserManager.updateUsers() }
+
                 return true
             }
             else -> super.onOptionsItemSelected(item)
@@ -82,7 +89,9 @@ private lateinit var  adapater: UserRecyclerAdapter
     }
 
     override fun deviceUserUpdate(updatedDeviceUserList: ArrayList<UserData>) {
+        //TODO: dismiss loader
         deviceUserList = updatedDeviceUserList
         adapater.submitList(deviceUserList)
+        Log.e("TODO", "deviceUserUpdate: ${deviceUserList.size}", )
     }
 }
